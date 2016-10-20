@@ -21,6 +21,7 @@
 #include <QMessageBox>
 #include <QSsl>
 #include <QSslCertificate>
+#include <QNetworkAccessManager>
 
 #include "QProgressIndicator.h"
 
@@ -316,31 +317,37 @@ QString subjectInfoHelper(const QSslCertificate& cert, const QByteArray &qa)
 #endif
 }
 
+extern void stuffLocalCertIntoSslConfiguration(QSslConfiguration *sslConfig, const QByteArray &pemCertificate, const QString &pemPrivateKey);
+
 //called during the validation of the client certificate.
 void OwncloudSetupPage::slotCertificateAccepted()
 {
     QSslCertificate sslCertificate;
+    qDebug() << "ZURUG" << addCertDial->getCertificatePath();
 
+    // FIXME: Use QSslCertificate::importPkcs12
     resultP12ToPem certif = p12ToPem(addCertDial->getCertificatePath().toStdString() , addCertDial->getCertificatePasswd().toStdString());
     if(certif.ReturnCode){
         QString s = QString::fromStdString(certif.Certificate);
         QByteArray ba = s.toLocal8Bit();
 
-        QList<QSslCertificate> sslCertificateList = QSslCertificate::fromData(ba, QSsl::Pem);
-        sslCertificate = sslCertificateList.takeAt(0);
-
-        _ocWizard->ownCloudCertificate = ba;
-        _ocWizard->ownCloudPrivateKey = certif.PrivateKey.c_str();
-        _ocWizard->ownCloudCertificatePath = addCertDial->getCertificatePath();
-        _ocWizard->ownCloudCertificatePasswd = addCertDial->getCertificatePasswd();
+        _ocWizard->clientCertificatePEM = QString::fromStdString(certif.Certificate).toLocal8Bit();
+        _ocWizard->clientKeyPEM  = QString::fromStdString(certif.PrivateKey).toLocal8Bit();
+        qDebug() << "ZURUG" << "all good, imported cert to wizard";
 
         AccountPtr acc = _ocWizard->account();
-        acc->setCertificate(_ocWizard->ownCloudCertificate, _ocWizard->ownCloudPrivateKey);
+        QSslConfiguration sslConfiguration = acc->getOrCreateSslConfig();
+        stuffLocalCertIntoSslConfiguration(&sslConfiguration, _ocWizard->clientCertificatePEM, _ocWizard->clientKeyPEM);
+        acc->setSslConfiguration(sslConfiguration);
+        acc->networkAccessManager()->clearAccessCache();
+        //acc->resetSslConfiguration(); // else the local cert won't be picked up
+        //acc->setCertificate(_ocWizard->ownCloudCertificate, _ocWizard->ownCloudPrivateKey);
         addCertDial->reinit();
         validatePage();
     } else {
         QString message;
         message = certif.Comment.c_str();
+        qDebug() << "ZURUG" << message;
         addCertDial->showErrorMessage(message);
         addCertDial->show();
     }
@@ -348,7 +355,6 @@ void OwncloudSetupPage::slotCertificateAccepted()
 
 OwncloudSetupPage::~OwncloudSetupPage()
 {
-    delete addCertDial;
 }
 
 } // namespace OCC

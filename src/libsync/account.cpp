@@ -258,11 +258,38 @@ QNetworkReply *Account::davRequest(const QByteArray &verb, const QUrl &url, QNet
     return _am->sendCustomRequest(req, verb, data);
 }
 
-void Account::setCertificate(const QByteArray certficate, const QString privateKey)
+void stuffLocalCertIntoSslConfiguration(QSslConfiguration *sslConfig, const QByteArray &pemCertificate, const QString &pemPrivateKey)
 {
-    _pemCertificate=certficate;
-    _pemPrivateKey=privateKey;
+    QSslCertificate sslClientCertificate;
+    QList<QSslCertificate> sslCertificateList = QSslCertificate::fromData(pemCertificate, QSsl::Pem);
+    if(sslCertificateList.length() != 0) {
+        sslClientCertificate = sslCertificateList.takeAt(0);
+    }
+    // Read key from file
+    QSslKey privateKey(pemPrivateKey.toLocal8Bit(), QSsl::Rsa, QSsl::Pem, QSsl::PrivateKey , "");
+
+    // SSL configuration
+    //sslConfig->setCaCertificates(QSslSocket::systemCaCertificates());
+    sslConfig->setLocalCertificate(sslClientCertificate);
+    sslConfig->setPrivateKey(privateKey);
+    qDebug() << "Added SSL client certificate to the query";
 }
+
+// Client certificate
+//void Account::setCertificate(const QByteArray certficate, const QString privateKey)
+//{
+//    _pemCertificate=certficate;
+//    _pemPrivateKey=privateKey;
+//    if (!_sslConfiguration.isNull()) {
+//        addClientCertToConfig(&_sslConfiguration, certficate, privateKey);
+//    }
+//}
+
+void Account::resetSslConfiguration()
+{
+    _sslConfiguration = QSslConfiguration();
+}
+
 
 void Account::setSslConfiguration(const QSslConfiguration &config)
 {
@@ -271,7 +298,11 @@ void Account::setSslConfiguration(const QSslConfiguration &config)
 
 QSslConfiguration Account::getOrCreateSslConfig()
 {
+    ConfigFile cfgFile;
+
+    qDebug() << "ZURUG" << _credentials.data(); /*<< cfgFile.certificatePath();*/
     if (!_sslConfiguration.isNull()) {
+        qDebug() << "ZURUG" << "early return.." << _sslConfiguration.localCertificate() << _sslConfiguration.privateKey();
         // Will be set by CheckServerJob::finished()
         // We need to use a central shared config to get SSL session tickets
         return _sslConfiguration;
@@ -280,36 +311,20 @@ QSslConfiguration Account::getOrCreateSslConfig()
     // if setting the client certificate fails, you will probably get an error similar to this:
     //  "An internal error number 1060 happened. SSL handshake failed, client certificate was requested: SSL error: sslv3 alert handshake failure"
     QSslConfiguration sslConfig = QSslConfiguration::defaultConfiguration();
-    QSslCertificate sslClientCertificate;
     
-    ConfigFile cfgFile;
-    if(!cfgFile.certificatePath().isEmpty() && !cfgFile.certificatePasswd().isEmpty()) {
-        resultP12ToPem certif = p12ToPem(cfgFile.certificatePath().toStdString(), cfgFile.certificatePasswd().toStdString());
-        QString s = QString::fromStdString(certif.Certificate);
-        QByteArray ba = s.toLocal8Bit();
-        this->setCertificate(ba, QString::fromStdString(certif.PrivateKey));
-    }
-    if((!_pemCertificate.isEmpty())&&(!_pemPrivateKey.isEmpty())) {
-        // Read certificates
-        QList<QSslCertificate> sslCertificateList = QSslCertificate::fromData(_pemCertificate, QSsl::Pem);
-        if(sslCertificateList.length() != 0) {
-            sslClientCertificate = sslCertificateList.takeAt(0);
-        }
-        // Read key from file
-        QSslKey privateKey(_pemPrivateKey.toLocal8Bit(), QSsl::Rsa, QSsl::Pem, QSsl::PrivateKey , "");
-
-        // SSL configuration
-        sslConfig.setCaCertificates(QSslSocket::systemCaCertificates());
-        sslConfig.setLocalCertificate(sslClientCertificate);
-        sslConfig.setPrivateKey(privateKey);
-        qDebug() << "Added SSL client certificate to the query";
-    }
+//    if((!_pemCertificate.isEmpty())&&(!_pemPrivateKey.isEmpty())) {
+//        addClientCertToConfig(_sslConfiguration, _pemCertificate, _pemPrivateKey);
+//    }
 
 #if QT_VERSION > QT_VERSION_CHECK(5, 2, 0)
     // Try hard to re-use session for different requests
-    sslConfig.setSslOption(QSsl::SslOptionDisableSessionTickets, false);
-    sslConfig.setSslOption(QSsl::SslOptionDisableSessionSharing, false);
-    sslConfig.setSslOption(QSsl::SslOptionDisableSessionPersistence, false);
+//    sslConfig.setSslOption(QSsl::SslOptionDisableSessionTickets, false);
+//    sslConfig.setSslOption(QSsl::SslOptionDisableSessionSharing, false);
+//    sslConfig.setSslOption(QSsl::SslOptionDisableSessionPersistence, false);
+    // FIXME: Use ssl sessions only after the wizard had run!
+    sslConfig.setSslOption(QSsl::SslOptionDisableSessionTickets, true);
+    sslConfig.setSslOption(QSsl::SslOptionDisableSessionSharing, true);
+    sslConfig.setSslOption(QSsl::SslOptionDisableSessionPersistence, true);
 #endif
 
     return sslConfig;

@@ -33,10 +33,10 @@ namespace OCC
 class OWNCLOUDSYNC_EXPORT HttpCredentials : public AbstractCredentials
 {
     Q_OBJECT
-
+    friend class HttpCredentialsAccessManager;
 public:
     explicit HttpCredentials();
-    HttpCredentials(const QString& user, const QString& password, const QString& certificatePath,  const QString& certificatePasswd);
+    HttpCredentials(const QString& user, const QString& password, const QByteArray& certificatePEM, const QByteArray& keyPEM);
 
     bool changed(AbstractCredentials* credentials) const Q_DECL_OVERRIDE;
     QString authType() const Q_DECL_OVERRIDE;
@@ -51,15 +51,23 @@ public:
     void forgetSensitiveData() Q_DECL_OVERRIDE;
     QString fetchUser();
     virtual bool sslIsTrusted() { return false; }
-    QString certificatePath() const;
-    QString certificatePasswd() const;
+
+    // For SSL client cert authentication
+    void setClientCertPEM(QByteArray &qba); // stored in keychain
+    QByteArray clientCertPEM();
+    void setClientKeyPEM(QByteArray &qba); // stored in keychain
+    QByteArray clientKeyPEM();
 
     // To fetch the user name as early as possible
     void setAccount(Account* account) Q_DECL_OVERRIDE;
 
 private Q_SLOTS:
     void slotAuthentication(QNetworkReply*, QAuthenticator*);
+
+    void slotReadClientCertPEMJobDone(QKeychain::Job*);
+    void slotReadClientKeyPEMJobDone(QKeychain::Job*);
     void slotReadJobDone(QKeychain::Job*);
+
     void slotWriteJobDone(QKeychain::Job*);
     void clearQNAMCache();
 
@@ -67,12 +75,11 @@ protected:
     QString _user;
     QString _password;
     QString _previousPassword;
+    // FIXME: Use QSslKey etc
+    QByteArray _clientCertPEM;
+    QByteArray _clientKeyPEM;
     QString _fetchErrorString;
     bool _ready;
-
-private:
-    QString _certificatePath;
-    QString _certificatePasswd;
 };
 
 } // namespace OCC

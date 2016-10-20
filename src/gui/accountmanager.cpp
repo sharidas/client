@@ -167,6 +167,7 @@ void AccountManager::saveAccountHelper(Account* acc, QSettings& settings, bool s
 {
     settings.setValue(QLatin1String(urlC), acc->_url.toString());
     settings.setValue(QLatin1String(serverVersionC), acc->_serverVersion);
+    settings.setValue(QLatin1String(serverVersionC), acc->_serverVersion);
     if (acc->_credentials) {
         if (saveCredentials) {
             // Only persist the credentials if the parameter is set, on migration from 1.8.x

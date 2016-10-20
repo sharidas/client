@@ -64,10 +64,10 @@ public:
     AbstractCredentials* getCredentials() const;
 
     void raiseCertificatePopup();
-    QByteArray ownCloudCertificate;
-    QString ownCloudPrivateKey;
-    QString ownCloudCertificatePath;
-    QString ownCloudCertificatePasswd;
+
+    // FIXME: Use QSslKey etc
+    QByteArray clientCertificatePEM;
+    QByteArray clientKeyPEM;
 
 public slots:
     void setAuthType(WizardCommon::AuthType type);

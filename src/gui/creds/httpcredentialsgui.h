@@ -27,7 +27,7 @@ class HttpCredentialsGui : public HttpCredentials {
     Q_OBJECT
 public:
     explicit HttpCredentialsGui() : HttpCredentials() {}
-    HttpCredentialsGui(const QString& user, const QString& password, const QString& certificatePath, const QString& certificatePasswd) : HttpCredentials(user, password, certificatePath, certificatePasswd) {}
+    HttpCredentialsGui(const QString& user, const QString& password, const QByteArray& certificatePEM, const QByteArray& keyPEM) : HttpCredentials(user, password, certificatePEM, keyPEM) {}
     void askFromUser() Q_DECL_OVERRIDE;
     Q_INVOKABLE void askFromUserAsync();
 

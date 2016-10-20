@@ -192,7 +192,8 @@ void OwncloudHttpCredsPage::setErrorString(const QString& err)
 
 AbstractCredentials* OwncloudHttpCredsPage::getCredentials() const
 {
-    return new HttpCredentialsGui(_ui.leUsername->text(), _ui.lePassword->text(), _ocWizard->ownCloudCertificatePath, _ocWizard->ownCloudCertificatePasswd);
+    qDebug() << "ZURUG" << _ocWizard->clientCertificatePEM;
+    return new HttpCredentialsGui(_ui.leUsername->text(), _ui.lePassword->text(), _ocWizard->clientCertificatePEM, _ocWizard->clientKeyPEM);
 }
 
 

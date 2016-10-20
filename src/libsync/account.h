@@ -150,7 +150,9 @@ public:
     QVariant credentialSetting(const QString& key) const;
     void setCredentialSetting(const QString& key, const QVariant &value);
 
+    // local SSL cert
     void setCertificate(const QByteArray certficate = QByteArray(), const QString privateKey = QString());
+    void resetSslConfiguration();
 
     void setCapabilities(const QVariantMap &caps);
     const Capabilities &capabilities() const;
@@ -221,8 +223,7 @@ private:
     QList<QSslCertificate> _rejectedCertificates;
 
     static QString _configFileName;
-    QByteArray _pemCertificate; 
-    QString _pemPrivateKey;  
+
     QString _davPath; // defaults to value from theme, might be overwritten in brandings
     bool _wasMigrated;
     friend class AccountManager;

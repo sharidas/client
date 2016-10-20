@@ -30,6 +30,7 @@ namespace OCC
 AccessManager::AccessManager(QObject* parent)
     : QNetworkAccessManager (parent)
 {
+    qDebug() << "ZURUG" << this << this->metaObject()->className();
 #if QT_VERSION >= QT_VERSION_CHECK(5, 0, 0) && defined(Q_OS_MAC)
     // FIXME Workaround http://stackoverflow.com/a/15707366/2941 https://bugreports.qt-project.org/browse/QTBUG-30434
     QNetworkProxy proxy = this->proxy();
@@ -56,7 +57,7 @@ void AccessManager::setRawCookie(const QByteArray &rawCookie, const  QUrl &url)
 QNetworkReply* AccessManager::createRequest(QNetworkAccessManager::Operation op, const QNetworkRequest& request, QIODevice* outgoingData)
 {
     QNetworkRequest newRequest(request);
-
+qDebug() << newRequest.url().toString() << newRequest.sslConfiguration().localCertificate();
     if (newRequest.hasRawHeader("cookie")) {
         // This will set the cookie into the QNetworkCookieJar which will then override the cookie header
         setRawCookie(request.rawHeader("cookie"), request.url());
