@@ -17,6 +17,8 @@
 #define MIRALL_OWNCLOUD_WIZARD_H
 
 #include <QWizard>
+#include <QSslKey>
+#include <QSslCertificate>
 
 #include "wizard/owncloudwizardcommon.h"
 #include "accountfwd.h"
@@ -66,8 +68,13 @@ public:
     void raiseCertificatePopup();
 
     // FIXME: Use QSslKey etc
-    QByteArray clientCertificatePEM;
-    QByteArray clientKeyPEM;
+    // FIXME: Can those be local variables?
+    // Set from the OwncloudSetupPage, later used from OwncloudHttpCredsPage
+    QSslKey _clientSslKey;
+    QSslCertificate _clientSslCertificate;
+
+//    QByteArray clientCertificatePEM;
+//    QByteArray clientKeyPEM;
 
 public slots:
     void setAuthType(WizardCommon::AuthType type);

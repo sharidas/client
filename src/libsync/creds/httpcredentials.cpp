@@ -37,8 +37,6 @@ namespace OCC
 namespace
 {
 const char userC[] = "user";
-//const char certifPathC[] = "certificatePath";
-//const char certifPasswdC[] = "certificatePasswd";
 const char clientCertificatePEMC[] = "_clientCertificatePEM";
 const char clientKeyPEMC[] = "_clientKeyPEM";
 const char authenticationFailedC[] = "owncloud-authentication-failed";
@@ -55,21 +53,16 @@ protected:
         req.setRawHeader(QByteArray("Authorization"), QByteArray("Basic ") + credHash);
         //qDebug() << "Request for " << req.url() << "with authorization" << QByteArray::fromBase64(credHash);
 
-        if (_cred->clientKeyPEM().length() > 0 && _cred->clientCertPEM().length()) {
-            QSslCertificate sslClientCertificate;
-            QList<QSslCertificate> sslCertificateList = QSslCertificate::fromData(_cred->clientCertPEM(), QSsl::Pem);
-            if(sslCertificateList.length() != 0) {
-                sslClientCertificate = sslCertificateList.takeAt(0);
-            }
-            QSslKey privateKey(_cred->clientKeyPEM(), QSsl::Rsa, QSsl::Pem, QSsl::PrivateKey , "");
-
+        if (!_cred->_clientSslKey.isNull() && !_cred->_clientSslCertificate.isNull()) {
             // SSL configuration
             QSslConfiguration sslConfiguration = req.sslConfiguration();
             //sslConfig->setCaCertificates(QSslSocket::systemCaCertificates()); <- why was this in the old code?
-            sslConfiguration.setLocalCertificate(sslClientCertificate);
-            sslConfiguration.setPrivateKey(privateKey);
+            sslConfiguration.setLocalCertificate(_cred->_clientSslCertificate);
+            sslConfiguration.setPrivateKey(_cred->_clientSslKey);
             req.setSslConfiguration(sslConfiguration);
-            qDebug() << "Added SSL client certificate to the query";
+            qDebug() << "Added SSL client certificate to the query"
+                     << _cred->_clientSslCertificate
+                     << _cred->_clientSslKey;
         }
 
         return AccessManager::createRequest(op, req, outgoingData);
@@ -79,9 +72,9 @@ private:
 };
 
 
-static void addSettingsToJob(QKeychain::Job *job)
+static void addSettingsToJob(Account *account, QKeychain::Job *job)
 {
-    auto settings = _account->settingsWithGroup(Theme::instance()->appName());
+    auto settings = account->settingsWithGroup(Theme::instance()->appName());
     settings->setParent(job); // make the job parent to make setting deleted properly
     job->setSettings(settings.release());
 }
@@ -91,34 +84,34 @@ HttpCredentials::HttpCredentials()
 {
 }
 
-HttpCredentials::HttpCredentials(const QString& user, const QString& password, const QByteArray& certificatePEM, const QByteArray& keyPEM)
+HttpCredentials::HttpCredentials(const QString& user, const QString& password, const QSslCertificate& certificate, const QSslKey& key)
     : _user(user),
       _password(password),
-      _clientCertPEM(certificatePEM),
-      _clientKeyPEM(keyPEM),
-      _ready(true)
+      _ready(true),
+      _clientSslKey(key),
+      _clientSslCertificate(certificate)
 {
 }
 
-void HttpCredentials::setClientCertPEM(QByteArray &qba)
-{
-    _clientCertPEM = qba;
-}
+//void HttpCredentials::setClientCertPEM(QByteArray &qba)
+//{
+//    _clientCertPEM = qba;
+//}
 
-QByteArray HttpCredentials::clientCertPEM()
-{
-    return _clientCertPEM;
-}
+//QByteArray HttpCredentials::clientCertPEM()
+//{
+//    return _clientCertPEM;
+//}
 
-void HttpCredentials::setClientKeyPEM(QByteArray &qba)
-{
-    _clientKeyPEM = qba;
-}
+//void HttpCredentials::setClientKeyPEM(QByteArray &qba)
+//{
+//    _clientKeyPEM = qba;
+//}
 
-QByteArray HttpCredentials::clientKeyPEM()
-{
-    return _clientKeyPEM;
-}
+//QByteArray HttpCredentials::clientKeyPEM()
+//{
+//    return _clientKeyPEM;
+//}
 
 bool HttpCredentials::changed(AbstractCredentials* credentials) const
 {
@@ -192,9 +185,11 @@ void HttpCredentials::fetchFromKeychain()
         // Read client cert from keychain
         const QString kck = keychainKey(_account->url().toString(), _user + clientCertificatePEMC);
         ReadPasswordJob *job = new ReadPasswordJob(Theme::instance()->appName());
-        addSettingsToJob(job);
+        addSettingsToJob(_account, job);
         job->setInsecureFallback(false);
         job->setKey(kck);
+        qDebug() << "-------- ----->" << _clientSslCertificate << _clientSslKey;
+
         connect(job, SIGNAL(finished(QKeychain::Job*)), SLOT(slotReadClientCertPEMJobDone(QKeychain::Job*)));
         job->start();
     }
@@ -205,15 +200,20 @@ void HttpCredentials::slotReadClientCertPEMJobDone(QKeychain::Job* incoming)
     // Store PEM in memory
     ReadPasswordJob *readJob = static_cast<ReadPasswordJob*>(incoming);
     if (readJob->error() == NoError) {
-        _clientCertPEM = readJob->binaryData();
+        QList<QSslCertificate> sslCertificateList = QSslCertificate::fromData(readJob->binaryData(), QSsl::Pem);
+        if(sslCertificateList.length() >= 1) {
+            _clientSslCertificate = sslCertificateList.at(0);
+        }
     }
 
     // Load key too
     const QString kck = keychainKey(_account->url().toString(), _user + clientKeyPEMC);
     ReadPasswordJob *job = new ReadPasswordJob(Theme::instance()->appName());
-    addSettingsToJob(job);
+    addSettingsToJob(_account, job);
     job->setInsecureFallback(false);
     job->setKey(kck);
+    qDebug() << "------------->" << _clientSslCertificate << _clientSslKey;
+
     connect(job, SIGNAL(finished(QKeychain::Job*)), SLOT(slotReadClientKeyPEMJobDone(QKeychain::Job*)));
     job->start();
 }
@@ -223,15 +223,18 @@ void HttpCredentials::slotReadClientKeyPEMJobDone(QKeychain::Job* incoming)
     // Store key in memory
     ReadPasswordJob *readJob = static_cast<ReadPasswordJob*>(incoming);
     if (readJob->error() == NoError) {
-        _clientKeyPEM = readJob->binaryData();
+        QByteArray clientKeyPEM = readJob->binaryData();
+        _clientSslKey = QSslKey(clientKeyPEM, QSsl::Opaque, QSsl::Pem, QSsl::PrivateKey , "");
     }
 
     // Now fetch the actual server password
     const QString kck = keychainKey(_account->url().toString(), _user );
     ReadPasswordJob *job = new ReadPasswordJob(Theme::instance()->appName());
-    addSettingsToJob(job);
+    addSettingsToJob(_account, job);
     job->setInsecureFallback(false);
     job->setKey(kck);
+    qDebug() << "------------->" << _clientSslCertificate << _clientSslKey;
+
     connect(job, SIGNAL(finished(QKeychain::Job*)), SLOT(slotReadJobDone(QKeychain::Job*)));
     job->start();
 }
@@ -245,10 +248,10 @@ bool HttpCredentials::stillValid(QNetworkReply *reply)
                 || !reply->property(authenticationFailedC).toBool()));
 }
 
-void HttpCredentials::slotReadJobDone(QKeychain::Job *job)
+void HttpCredentials::slotReadJobDone(QKeychain::Job *incomingJob)
 {
-    ReadPasswordJob *readJob = static_cast<ReadPasswordJob*>(job);
-    _password = readJob->textData();
+    QKeychain::ReadPasswordJob *job = static_cast<ReadPasswordJob*>(incomingJob);
+    _password = job->textData();
 
     if( _user.isEmpty()) {
         qDebug() << "Strange: User is empty!";
@@ -257,7 +260,6 @@ void HttpCredentials::slotReadJobDone(QKeychain::Job *job)
     QKeychain::Error error = job->error();
 
     if( !_password.isEmpty() && error == NoError ) {
-
         // All cool, the keychain did not come back with error.
         // Still, the password can be empty which indicates a problem and
         // the password dialog has to be opened.
@@ -293,7 +295,7 @@ void HttpCredentials::invalidateToken()
     }
 
     DeletePasswordJob *job = new DeletePasswordJob(Theme::instance()->appName());
-    addSettingsToJob(job);
+    addSettingsToJob(_account, job);
     job->setInsecureFallback(true);
     job->setKey(kck);
     job->start();
@@ -343,30 +345,32 @@ void HttpCredentials::persist()
 
     // write cert
     WritePasswordJob *job = new WritePasswordJob(Theme::instance()->appName());
-    addSettingsToJob(job);
+    addSettingsToJob(_account, job);
     job->setInsecureFallback(false);
     connect(job, SIGNAL(finished(QKeychain::Job*)), SLOT(slotWriteClientCertPEMJobDone(QKeychain::Job*)));
-    job->setKey(keychainKey(_account->url().toString(), _user + clientCertPEMC));
-    job->setBinaryData(_clientCertPEM);
+    job->setKey(keychainKey(_account->url().toString(), _user + clientCertificatePEMC));
+    job->setBinaryData(_clientSslCertificate.toPem());
     job->start();
 }
 
-void HttpCredentials::slotWriteClientCertPEMJobDone(QKeychain::Job *job)
+void HttpCredentials::slotWriteClientCertPEMJobDone(Job *incomingJob)
 {
-    // write key
-    WritePasswordJob *job = new WritePasswordJob(Theme::instance()->appName());
-    addSettingsToJob(job);
+    Q_UNUSED(incomingJob);
+    // write ssl key
+    WritePasswordJob* job = new WritePasswordJob(Theme::instance()->appName());
+    addSettingsToJob(_account, job);
     job->setInsecureFallback(false);
     connect(job, SIGNAL(finished(QKeychain::Job*)), SLOT(slotWriteClientKeyPEMJobDone(QKeychain::Job*)));
     job->setKey(keychainKey(_account->url().toString(), _user + clientKeyPEMC));
-    job->setBinaryData(_clientKeyPEM);
+    job->setBinaryData(_clientSslKey.toPem());
     job->start();
 }
 
-void HttpCredentials::slotWriteClientKeyPEMJobDone(QKeychain::Job *job)
+void HttpCredentials::slotWriteClientKeyPEMJobDone(Job *incomingJob)
 {
-    WritePasswordJob *job = new WritePasswordJob(Theme::instance()->appName());
-    addSettingsToJob(job);
+    Q_UNUSED(incomingJob);
+    WritePasswordJob* job = new WritePasswordJob(Theme::instance()->appName());
+    addSettingsToJob(_account, job);
     job->setInsecureFallback(false);
     connect(job, SIGNAL(finished(QKeychain::Job*)), SLOT(slotWriteJobDone(QKeychain::Job*)));
     job->setKey(keychainKey(_account->url().toString(), _user));

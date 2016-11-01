@@ -326,29 +326,35 @@ void OwncloudSetupPage::slotCertificateAccepted()
     qDebug() << "ZURUG" << addCertDial->getCertificatePath();
 
     // FIXME: Use QSslCertificate::importPkcs12
-    resultP12ToPem certif = p12ToPem(addCertDial->getCertificatePath().toStdString() , addCertDial->getCertificatePasswd().toStdString());
-    if(certif.ReturnCode){
-        QString s = QString::fromStdString(certif.Certificate);
-        QByteArray ba = s.toLocal8Bit();
+    //resultP12ToPem certif = p12ToPem(addCertDial->getCertificatePath().toStdString() , addCertDial->getCertificatePasswd().toStdString());
 
-        _ocWizard->clientCertificatePEM = QString::fromStdString(certif.Certificate).toLocal8Bit();
-        _ocWizard->clientKeyPEM  = QString::fromStdString(certif.PrivateKey).toLocal8Bit();
+    QList<QSslCertificate> clientCaCertificates; // FIXME: We don't need those right?
+    QFile certFile(addCertDial->getCertificatePath());
+    certFile.open(QFile::ReadOnly);
+    if(QSslCertificate::importPkcs12(&certFile,
+                                         &_ocWizard->_clientSslKey, &_ocWizard->_clientSslCertificate,
+                                            &clientCaCertificates,
+                                            addCertDial->getCertificatePasswd().toLocal8Bit())){
         qDebug() << "ZURUG" << "all good, imported cert to wizard";
 
         AccountPtr acc = _ocWizard->account();
         QSslConfiguration sslConfiguration = acc->getOrCreateSslConfig();
-        stuffLocalCertIntoSslConfiguration(&sslConfiguration, _ocWizard->clientCertificatePEM, _ocWizard->clientKeyPEM);
+        //stuffLocalCertIntoSslConfiguration(&sslConfiguration, _ocWizard->clientCertificatePEM, _ocWizard->clientKeyPEM);
+        // We're stuffing the certificate into the configuration form here. Later the
+        // cert will come via the HttpCredentials
+        sslConfiguration.setLocalCertificate(_ocWizard->_clientSslCertificate);
+        sslConfiguration.setPrivateKey(_ocWizard->_clientSslKey);
         acc->setSslConfiguration(sslConfiguration);
         acc->networkAccessManager()->clearAccessCache();
         //acc->resetSslConfiguration(); // else the local cert won't be picked up
         //acc->setCertificate(_ocWizard->ownCloudCertificate, _ocWizard->ownCloudPrivateKey);
-        addCertDial->reinit();
+        addCertDial->reinit(); // FIXME: Why not just have this only created on use?
         validatePage();
     } else {
-        QString message;
-        message = certif.Comment.c_str();
-        qDebug() << "ZURUG" << message;
-        addCertDial->showErrorMessage(message);
+        //QString message;
+        //message = certif.Comment.c_str();
+        //qDebug() << "ZURUG" << message;
+        addCertDial->showErrorMessage("Could not load certificate");
         addCertDial->show();
     }
 }

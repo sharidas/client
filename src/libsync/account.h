@@ -152,7 +152,7 @@ public:
 
     // local SSL cert
     void setCertificate(const QByteArray certficate = QByteArray(), const QString privateKey = QString());
-    void resetSslConfiguration();
+    //void resetSslConfiguration();
 
     void setCapabilities(const QVariantMap &caps);
     const Capabilities &capabilities() const;

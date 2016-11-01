@@ -17,7 +17,8 @@
 #define MIRALL_CREDS_HTTP_CREDENTIALS_H
 
 #include <QMap>
-
+#include <QSslCertificate>
+#include <QSslKey>
 #include "creds/abstractcredentials.h"
 
 class QNetworkReply;
@@ -25,6 +26,8 @@ class QAuthenticator;
 
 namespace QKeychain {
 class Job;
+class WritePasswordJob;
+class ReadPasswordJob;
 }
 
 namespace OCC
@@ -36,7 +39,7 @@ class OWNCLOUDSYNC_EXPORT HttpCredentials : public AbstractCredentials
     friend class HttpCredentialsAccessManager;
 public:
     explicit HttpCredentials();
-    HttpCredentials(const QString& user, const QString& password, const QByteArray& certificatePEM, const QByteArray& keyPEM);
+    HttpCredentials(const QString& user, const QString& password, const QSslCertificate& certificate = QSslCertificate(), const QSslKey& key = QSslKey());
 
     bool changed(AbstractCredentials* credentials) const Q_DECL_OVERRIDE;
     QString authType() const Q_DECL_OVERRIDE;
@@ -53,10 +56,10 @@ public:
     virtual bool sslIsTrusted() { return false; }
 
     // For SSL client cert authentication
-    void setClientCertPEM(QByteArray &qba); // stored in keychain
-    QByteArray clientCertPEM();
-    void setClientKeyPEM(QByteArray &qba); // stored in keychain
-    QByteArray clientKeyPEM();
+//    void setClientCertPEM(QByteArray &qba); // stored in keychain
+//    QByteArray clientCertPEM();
+//    void setClientKeyPEM(QByteArray &qba); // stored in keychain
+//    QByteArray clientKeyPEM();
 
     // To fetch the user name as early as possible
     void setAccount(Account* account) Q_DECL_OVERRIDE;
@@ -68,6 +71,8 @@ private Q_SLOTS:
     void slotReadClientKeyPEMJobDone(QKeychain::Job*);
     void slotReadJobDone(QKeychain::Job*);
 
+    void slotWriteClientCertPEMJobDone(QKeychain::Job*);
+    void slotWriteClientKeyPEMJobDone(QKeychain::Job*);
     void slotWriteJobDone(QKeychain::Job*);
     void clearQNAMCache();
 
@@ -76,10 +81,13 @@ protected:
     QString _password;
     QString _previousPassword;
     // FIXME: Use QSslKey etc
-    QByteArray _clientCertPEM;
-    QByteArray _clientKeyPEM;
+//    QByteArray _clientCertPEM;
+//    QByteArray _clientKeyPEM;
+
     QString _fetchErrorString;
     bool _ready;
+    QSslKey _clientSslKey;
+    QSslCertificate _clientSslCertificate;
 };
 
 } // namespace OCC

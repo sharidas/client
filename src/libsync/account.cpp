@@ -258,22 +258,22 @@ QNetworkReply *Account::davRequest(const QByteArray &verb, const QUrl &url, QNet
     return _am->sendCustomRequest(req, verb, data);
 }
 
-void stuffLocalCertIntoSslConfiguration(QSslConfiguration *sslConfig, const QByteArray &pemCertificate, const QString &pemPrivateKey)
-{
-    QSslCertificate sslClientCertificate;
-    QList<QSslCertificate> sslCertificateList = QSslCertificate::fromData(pemCertificate, QSsl::Pem);
-    if(sslCertificateList.length() != 0) {
-        sslClientCertificate = sslCertificateList.takeAt(0);
-    }
-    // Read key from file
-    QSslKey privateKey(pemPrivateKey.toLocal8Bit(), QSsl::Rsa, QSsl::Pem, QSsl::PrivateKey , "");
+//void stuffLocalCertIntoSslConfiguration(QSslConfiguration *sslConfig, const QByteArray &pemCertificate, const QString &pemPrivateKey)
+//{
+//    QSslCertificate sslClientCertificate;
+//    QList<QSslCertificate> sslCertificateList = QSslCertificate::fromData(pemCertificate, QSsl::Pem);
+//    if(sslCertificateList.length() != 0) {
+//        sslClientCertificate = sslCertificateList.takeAt(0);
+//    }
+//    // Read key from file
+//    QSslKey privateKey(pemPrivateKey.toLocal8Bit(), QSsl::Rsa, QSsl::Pem, QSsl::PrivateKey , "");
 
-    // SSL configuration
-    //sslConfig->setCaCertificates(QSslSocket::systemCaCertificates());
-    sslConfig->setLocalCertificate(sslClientCertificate);
-    sslConfig->setPrivateKey(privateKey);
-    qDebug() << "Added SSL client certificate to the query";
-}
+//    // SSL configuration
+//    //sslConfig->setCaCertificates(QSslSocket::systemCaCertificates());
+//    sslConfig->setLocalCertificate(sslClientCertificate);
+//    sslConfig->setPrivateKey(privateKey);
+//    qDebug() << "Added SSL client certificate to the query";
+//}
 
 // Client certificate
 //void Account::setCertificate(const QByteArray certficate, const QString privateKey)
@@ -285,10 +285,10 @@ void stuffLocalCertIntoSslConfiguration(QSslConfiguration *sslConfig, const QByt
 //    }
 //}
 
-void Account::resetSslConfiguration()
-{
-    _sslConfiguration = QSslConfiguration();
-}
+//void Account::resetSslConfiguration()
+//{
+//    _sslConfiguration = QSslConfiguration();
+//}
 
 
 void Account::setSslConfiguration(const QSslConfiguration &config)
