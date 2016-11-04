@@ -17,7 +17,6 @@
 #include "configfile.h"
 #include "accessmanager.h"
 #include "creds/abstractcredentials.h"
-#include "../3rdparty/certificates/p12topem.h"
 #include "capabilities.h"
 #include "theme.h"
 

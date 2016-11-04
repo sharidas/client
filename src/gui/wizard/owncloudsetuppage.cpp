@@ -28,7 +28,6 @@
 #include "wizard/owncloudwizardcommon.h"
 #include "wizard/owncloudsetuppage.h"
 #include "wizard/owncloudconnectionmethoddialog.h"
-#include "../3rdparty/certificates/p12topem.h"
 #include "theme.h"
 #include "account.h"
 
