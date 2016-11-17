@@ -421,7 +421,6 @@ int main(int argc, char **argv) {
 
     loop.exec();
 #endif
-    account->setBundleRequestsIfCapable(options.bundleRequests);
 
     // much lower age than the default since this utility is usually made to be run right after a change in the tests
     SyncEngine::minimumFileAgeForUpload = 0;
