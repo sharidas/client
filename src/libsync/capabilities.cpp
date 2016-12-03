@@ -52,6 +52,11 @@ bool Capabilities::sharePublicLinkAllowUpload() const
     return  _capabilities["files_sharing"].toMap()["public"].toMap()["upload"].toBool();
 }
 
+bool Capabilities::shareHideFileListing() const
+{
+    return _capabilities["files_sharing"].toMap()["public"].toMap()["upload_files_drop"].toBool();
+}
+
 bool Capabilities::sharePublicLinkEnforcePassword() const
 {
     return _capabilities["files_sharing"].toMap()["public"].toMap()["password"].toMap()["enforced"].toBool();
@@ -61,6 +66,7 @@ bool Capabilities::sharePublicLinkEnforceExpireDate() const
 {
     return _capabilities["files_sharing"].toMap()["public"].toMap()["expire_date"].toMap()["enforced"].toBool();
 }
+
 
 int Capabilities::sharePublicLinkExpireDateDays() const
 {

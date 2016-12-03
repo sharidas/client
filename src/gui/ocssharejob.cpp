@@ -84,6 +84,16 @@ void OcsShareJob::setPublicUpload(const QString &shareId, bool publicUpload)
     start();
 }
 
+void OcsShareJob::setHideFileList(const QString &shareId, bool hideFileList)
+{
+    if (hideFileList)
+    {
+        setPermissions(shareId, SharePermissionCreate);
+    } else {
+        setPublicUpload(shareId, true);
+    }
+}
+
 void OcsShareJob::setPermissions(const QString &shareId, 
                                  const Share::Permissions permissions)
 {

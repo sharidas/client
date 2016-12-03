@@ -79,6 +79,7 @@ ShareLinkWidget::ShareLinkWidget(AccountPtr account,
     connect(_ui->checkBox_expire, SIGNAL(clicked()), this, SLOT(slotCheckBoxExpireClicked()));
     connect(_ui->calendar, SIGNAL(dateChanged(QDate)), SLOT(slotExpireDateChanged(QDate)));
     connect(_ui->checkBox_editing, SIGNAL(clicked()), this, SLOT(slotCheckBoxEditingClicked()));
+    connect(_ui->checkBox_hidefilelisting, SIGNAL(clicked()), this, SLOT(slotCheckBoxHideFileListingClicked()));
 
     //Disable checkbox
     _ui->checkBox_shareLink->setEnabled(false);
@@ -128,6 +129,8 @@ ShareLinkWidget::ShareLinkWidget(AccountPtr account,
     _ui->widget_editing->setVisible(!_isFile);
     _ui->checkBox_editing->setEnabled(
             _account->capabilities().sharePublicLinkAllowUpload());
+
+    _ui->checkBox_hidefilelisting->setEnabled(_account->capabilities().shareHideFileListing());
 
     /*
      * Create the share manager and connect it properly
@@ -271,9 +274,22 @@ void ShareLinkWidget::slotSharesFetched(const QList<QSharedPointer<Share>> &shar
              */
             _ui->checkBox_editing->setEnabled(
                     _account->capabilities().sharePublicLinkAllowUpload());
+
+            _ui->checkBox_hidefilelisting->setEnabled(
+                    _account->capabilities().shareHideFileListing());
+
             if (!_isFile) {
                 _ui->checkBox_editing->setChecked(_share->getPublicUpload());
+                _ui->checkBox_hidefilelisting->setChecked(_share->getHideFileListing());
             }
+
+            if ( _ui->checkBox_editing->checkState() == Qt::Checked )
+            {
+                _ui->checkBox_hidefilelisting->setEnabled(true);
+            } else {
+                _ui->checkBox_hidefilelisting->setEnabled(false);
+            }
+
 
             setShareLink(_share->getLink().toString());
             _ui->pushButton_mail->setEnabled(true);
@@ -377,6 +393,7 @@ void ShareLinkWidget::slotCheckBoxShareLinkClicked()
             _ui->checkBox_password->setText(tr("Public sh&aring requires a password"));
             _ui->checkBox_expire->setEnabled(false);
             _ui->checkBox_editing->setEnabled(false);
+            _ui->checkBox_hidefilelisting->setEnabled(false);
             _ui->lineEdit_password->setEnabled(true);
             _ui->lineEdit_password->setFocus();
             _ui->pushButton_copy->hide();
@@ -430,6 +447,7 @@ void ShareLinkWidget::slotCreateShareRequiresPassword(const QString& message)
     _ui->widget_shareLink->show();
     _ui->checkBox_expire->setEnabled(false);
     _ui->checkBox_editing->setEnabled(false);
+    _ui->checkBox_hidefilelisting->setEnabled(false);
     if (!message.isEmpty()) {
         _ui->errorLabel->setText(message);
         _ui->errorLabel->show();
@@ -511,6 +529,19 @@ void ShareLinkWidget::slotPushButtonMailLinkPressed()
 void ShareLinkWidget::slotCheckBoxEditingClicked()
 {
     ShareLinkWidget::setPublicUpload(_ui->checkBox_editing->checkState() == Qt::Checked);
+    if ( _ui->checkBox_editing->checkState() == Qt::Checked )
+    {
+        _ui->checkBox_hidefilelisting->setEnabled(true);
+    } else {
+        if(_ui->checkBox_hidefilelisting->checkState() == Qt::Checked)
+            _ui->checkBox_hidefilelisting->setCheckState(Qt::Unchecked);
+        _ui->checkBox_hidefilelisting->setEnabled(false);
+    }
+}
+
+void ShareLinkWidget::slotCheckBoxHideFileListingClicked()
+{
+    ShareLinkWidget::setHideFileList(_ui->checkBox_hidefilelisting->checkState() == Qt::Checked);
 }
 
 void ShareLinkWidget::setPublicUpload(bool publicUpload)
@@ -520,6 +551,11 @@ void ShareLinkWidget::setPublicUpload(bool publicUpload)
     _ui->errorLabel->hide();
 
     _share->setPublicUpload(publicUpload);
+}
+
+void ShareLinkWidget::setHideFileList(bool hideFileList)
+{
+    _share->setHideFileList(hideFileList);
 }
 
 void ShareLinkWidget::slotPublicUploadSet()

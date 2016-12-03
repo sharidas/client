@@ -71,6 +71,7 @@ private slots:
     void slotPushButtonCopyLinkPressed();
     void slotPushButtonMailLinkPressed();
     void slotCheckBoxEditingClicked();
+    void slotCheckBoxHideFileListingClicked();
     void slotPublicUploadSet();
 
     void slotServerError(int code, const QString &message);
@@ -83,6 +84,7 @@ private:
     void resizeEvent(QResizeEvent *e);
     void redrawElidedUrl();
     void setPublicUpload(bool publicUpload);
+    void setHideFileList(bool hideFileList);
 
     Ui::ShareLinkWidget *_ui;
     AccountPtr _account;

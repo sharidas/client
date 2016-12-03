@@ -148,6 +148,11 @@ public:
     bool getPublicUpload();
 
     /*
+     *  Get the hideFileListing status of this share
+     */
+    bool getHideFileListing();
+
+    /*
      * Set a share to be public upload
      * This function can only be called on link shares
      *
@@ -155,6 +160,13 @@ public:
      * In case of a server error the serverError signal is emitted.
      */
     void setPublicUpload(bool publicUpload);
+
+    /*
+     * Set a share to hide file listing
+     * This function can only be called on link shares
+     *
+     */
+     void setHideFileList(bool hideFileList);
 
     /*
      * Set the password
@@ -185,12 +197,14 @@ public:
 signals:
     void expireDateSet();
     void publicUploadSet();
+    void hideFileSet();
     void passwordSet();
     void passwordSetError(int statusCode, const QString &message);
 
 private slots:
     void slotPasswordSet(const QVariantMap&, const QVariant &value);
     void slotPublicUploadSet(const QVariantMap&, const QVariant &value);
+    void slotHideFileSet(const QVariantMap&, const QVariant &value);
     void slotExpireDateSet(const QVariantMap& reply, const QVariant &value);
     void slotSetPasswordError(int statusCode, const QString &message);
 

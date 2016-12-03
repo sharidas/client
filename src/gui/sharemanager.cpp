@@ -136,8 +136,15 @@ LinkShare::LinkShare(AccountPtr account,
 
 bool LinkShare::getPublicUpload()
 {
-    return ((_permissions & SharePermissionUpdate) &&
-            (_permissions & SharePermissionCreate));
+    bool updateAndCreate = (_permissions & SharePermissionUpdate) &&
+            (_permissions & SharePermissionCreate);
+
+    return updateAndCreate || getHideFileListing();
+}
+
+bool LinkShare::getHideFileListing()
+{
+    return _permissions == SharePermissionCreate;
 }
 
 void LinkShare::setPublicUpload(bool publicUpload)
@@ -148,6 +155,15 @@ void LinkShare::setPublicUpload(bool publicUpload)
     job->setPublicUpload(getId(), publicUpload);
 }
 
+void LinkShare::setHideFileList(bool hideFileList)
+{
+    OcsShareJob *job = new OcsShareJob(_account);
+    connect(job, SIGNAL(shareJobFinished(QVariantMap, QVariant)), SLOT(slotHideFileSet(QVariantMap,QVariant)));
+    connect(job, SIGNAL(ocsError(int, QString)), SLOT(slotOcsError(int, QString)));
+    job->setHideFileList(getId(), hideFileList);
+
+}
+
 void LinkShare::slotPublicUploadSet(const QVariantMap&, const QVariant &value)
 {
     if (value.toBool()) {
@@ -156,7 +172,19 @@ void LinkShare::slotPublicUploadSet(const QVariantMap&, const QVariant &value)
         _permissions = SharePermissionRead;
     }
 
+
     emit publicUploadSet();
+}
+
+void LinkShare::slotHideFileSet(const QVariantMap &, const QVariant &value)
+{
+    if(value.toBool()) {
+        _permissions = SharePermissionCreate;
+    } else {
+        _permissions = SharePermissionRead | SharePermissionUpdate | SharePermissionCreate;
+    }
+
+    emit hideFileSet();
 }
 
 void LinkShare::setPassword(const QString &password)

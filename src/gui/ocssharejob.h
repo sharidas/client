@@ -75,6 +75,12 @@ public:
     void setPublicUpload(const QString &shareId, bool publicUpload);
 
     /**
+     *  Void set hide file List
+     * @param sethideFileList Set or remove hide file list
+    */
+    void setHideFileList(const QString &shareId, bool hideFileList);
+
+    /**
      * Set the permissions
      *
      * @param permissions

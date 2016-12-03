@@ -78,6 +78,11 @@ public:
      */
     QByteArray uploadChecksumType() const;
 
+    /**
+     * Returns if the hideFileListing feature is availabe on the server.
+     */
+    bool shareHideFileListing() const;
+
 private:
     QVariantMap _capabilities;
 };
